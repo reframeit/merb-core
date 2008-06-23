@@ -7,7 +7,10 @@ module Merb
       options = {}
       options[:value] = key
       options[:expires] = Time.now + _session_expiry if _session_expiry > 0
-      options[:domain] = _session_cookie_domain if _session_cookie_domain
+      #BTM - _session_cookie_domain get sets before the config for the environment
+      #has been read
+      #options[:domain] = _session_cookie_domain if _session_cookie_domain
+      options[:domain] = Merb::Config[:session_cookie_domain] if Merb::Config[:session_cookie_domain]
       cookies[_session_id_key] = options
     end
 
