@@ -7,9 +7,9 @@ class Merb::Controller < Merb::AbstractController
   def self.subclasses_list() _subclasses end
 
   self._session_secret_key = nil
-  self._session_id_key = Merb::Config[:session_id_key] || '_session_id'
-  self._session_expiry = Merb::Config[:session_expiry] || Merb::Const::WEEK * 2
-  self._session_cookie_domain = Merb::Config[:session_cookie_domain]
+  self._session_id_key = nil 
+  self._session_expiry = nil
+  self._session_cookie_domain = nil
 
   include Merb::ResponderMixin
   include Merb::ControllerMixin

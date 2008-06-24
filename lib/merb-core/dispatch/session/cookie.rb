@@ -21,10 +21,7 @@ module Merb
       new_session = request.session.read_cookie
       if @original_session != new_session
         options = {:expires => (Time.now + _session_expiry)}
-	#BTM - _session_cookie_domain get sets before the config for the environment
-        #has been read
-        #options[:domain] = _session_cookie_domain if _session_cookie_domain
-        options[:domain] = Merb::Config[:session_cookie_domain] if Merb::Config[:session_cookie_domain]
+        options[:domain] = _session_cookie_domain if _session_cookie_domain
         cookies.set_cookie(_session_id_key, new_session, options)
       end
     end

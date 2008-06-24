@@ -568,6 +568,8 @@ class Merb::BootLoader::MixinSessionContainer < Merb::BootLoader
       elsif reg = Merb.registered_session_types[session_store]
         Merb::BootLoader::MixinSessionContainer.check_for_secret_key if session_store == "cookie"
         Merb::BootLoader::MixinSessionContainer.check_for_session_id_key
+        Merb::BootLoader::MixinSessionContainer.check_for_session_expiry
+        Merb::BootLoader::MixinSessionContainer.check_for_session_domain
         require reg[:file]
         include ::Merb::SessionMixin
         Merb.logger.warn reg[:description]
@@ -576,6 +578,8 @@ class Merb::BootLoader::MixinSessionContainer < Merb::BootLoader
         Merb.logger.warn "Defaulting to CookieStore Sessions"
         Merb::BootLoader::MixinSessionContainer.check_for_secret_key
         Merb::BootLoader::MixinSessionContainer.check_for_session_id_key
+        Merb::BootLoader::MixinSessionContainer.check_for_session_expiry
+        Merb::BootLoader::MixinSessionContainer.check_for_session_domain
         require Merb.registered_session_types['cookie'][:file]
         include ::Merb::SessionMixin
         Merb.logger.warn "(plugin not installed?)"
@@ -600,6 +604,14 @@ class Merb::BootLoader::MixinSessionContainer < Merb::BootLoader
       exit!
     end
     Merb::Controller._session_secret_key = Merb::Config[:session_secret_key]
+  end
+
+  def self.check_for_session_expiry
+    Merb::Controller._session_expiry =  Merb::Config[:session_expiry] || Merb::Const::WEEK * 2
+  end
+  
+  def self.check_for_session_domain
+    Merb::Controller._session_cookie_domain = Merb::Config[:session_cookie_domain] if Merb::Config[:session_cookie_domain]
   end
 end
 
