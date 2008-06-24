@@ -591,9 +591,7 @@ class Merb::BootLoader::MixinSessionContainer < Merb::BootLoader
 
   # Sets the controller session ID key if it has been set in config.
   def self.check_for_session_id_key
-    if Merb::Config[:session_id_key]
-      Merb::Controller._session_id_key = Merb::Config[:session_id_key]
-    end
+    Merb::Controller._session_id_key = Merb::Config[:session_id_key] || '_session_id'
   end
 
   # Attempts to set the session secret key. This method will exit if the key
