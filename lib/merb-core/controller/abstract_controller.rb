@@ -284,6 +284,8 @@ class Merb::AbstractController
         when Symbol, String
           if rule.key?(:with)
             args = rule[:with]
+            # allow procs that are called in the context of the controller
+            args = [args].flatten.map { |a| a.call(self) if a.is_a?(Proc) }
             send(filter, *args)
           else
             send(filter)
