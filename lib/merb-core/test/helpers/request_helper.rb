@@ -334,7 +334,7 @@ module Merb
       def check_request_for_route(request)
         match =  ::Merb::Router.match(request)
         if match[0].nil? && match[1].empty?
-          raise ::Merb::ControllerExceptions::BadRequest, "No routes match the request"
+          raise ::Merb::ControllerExceptions::BadRequest, "No routes match the request, #{request.uri}"
         else
           match[1]
         end
