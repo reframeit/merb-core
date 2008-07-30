@@ -51,6 +51,7 @@ spec = Gem::Specification.new do |s|
   #s.rdoc_options     += RDOC_OPTS + ["--exclude", "^(app|uploads)"]
 
   # Dependencies
+  s.add_dependency "merb-extlib", ">= #{Merb::VERSION}"
   s.add_dependency "erubis"
   s.add_dependency "rake"
   s.add_dependency "json_pure"
@@ -327,5 +328,15 @@ rule "" do |t|
     example = " -e '#{spec_name}'" unless spec_name.empty?
 
     sh "#{spec_cmd} #{run_file_name} --format specdoc --colour #{example}"
+  end
+end
+
+
+namespace :tools do
+  namespace :tags do
+    desc "Generates Emacs tags using Exuberant Ctags."
+    task :emacs do
+      sh "ctags -e --Ruby-kinds=-f -o TAGS -R lib"
+    end
   end
 end

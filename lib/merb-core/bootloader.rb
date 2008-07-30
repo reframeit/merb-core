@@ -60,9 +60,15 @@ module Merb
       def run
         subklasses = subclasses.dup
         until subclasses.empty?
+          time = Time.now.to_i
           bootloader = subclasses.shift
-          Merb.logger.debug!("Loading: #{bootloader}") if ENV['DEBUG']
+          if (ENV['DEBUG'] || $DEBUG || Merb::Config[:verbose]) && Merb.logger
+            Merb.logger.debug!("Loading: #{bootloader}")
+          end
           Object.full_const_get(bootloader).run
+          if (ENV['DEBUG'] || $DEBUG || Merb::Config[:verbose]) && Merb.logger
+            Merb.logger.debug!("It took: #{Time.now.to_i - time}")
+          end
           self.finished << bootloader
         end
         self.subclasses = subklasses
@@ -143,7 +149,7 @@ class Merb::BootLoader::Logger < Merb::BootLoader
   
   def self.print_warnings
     if Gem::Version.new(Gem::RubyGemsVersion) < Gem::Version.new("1.1")
-      Merb.logger.warn! "Please upgrade your Rubygems to the latest version"      
+      Merb.logger.warn! "Merb requires Rubygems 1.1 and later. Please upgrade RubyGems with gem update --system."
     end
   end
 end
@@ -331,10 +337,11 @@ class Merb::BootLoader::LoadClasses < Merb::BootLoader
 
     # Load all classes from Merb's native load paths.
     def run
-      # Add models, controllers, and lib to the load path
+      # Add models, controllers, helpers and lib to the load path
       $LOAD_PATH.unshift Merb.dir_for(:model)
       $LOAD_PATH.unshift Merb.dir_for(:controller)
       $LOAD_PATH.unshift Merb.dir_for(:lib)
+      $LOAD_PATH.unshift Merb.dir_for(:helper)
 
       # Load application file if it exists - for flat applications
       load_file Merb.dir_for(:application) if File.file?(Merb.dir_for(:application))
@@ -378,7 +385,7 @@ class Merb::BootLoader::LoadClasses < Merb::BootLoader
     # ==== Parameters
     # file<String>:: The file to reload.
     def reload(file)
-      remove_file(file) { |f| load_file(f) }
+      remove_classes_in_file(file) { |f| load_file(f) }
     end
     
     # Reload the router to regenerate all routes.
@@ -392,7 +399,7 @@ class Merb::BootLoader::LoadClasses < Merb::BootLoader
     # ==== Parameters
     # file<String>:: The file to remove classes for.
     # &block:: A block to call with the file that has been removed.
-    def remove_file(file, &block)
+    def remove_classes_in_file(file, &block)
       Merb.klass_hashes.each {|x| x.protect_keys!}
       if klasses = LOADED_CLASSES.delete(file)
         klasses.each { |klass| remove_constant(klass) unless klass.to_s =~ /Router/ }
@@ -430,7 +437,8 @@ class Merb::BootLoader::LoadClasses < Merb::BootLoader
     private
 
     # "Better loading" of classes.  If a class fails to load due to a NameError
-    # it will be added to the failed_classs stack.
+    # it will be added to the failed_classes and load cycle will be repeated unless
+    # no classes load.
     #
     # ==== Parameters
     # klasses<Array[Class]>:: Classes to load.
@@ -598,7 +606,7 @@ class Merb::BootLoader::MixinSessionContainer < Merb::BootLoader
   # does not exist or is shorter than 16 charaters.
   def self.check_for_secret_key
     unless Merb::Config[:session_secret_key] && (Merb::Config[:session_secret_key].length >= 16)
-      Merb.logger.warn("You must specify a session_secret_key in your merb.yml, and it must be at least 16 characters\nbailing out...")
+      Merb.logger.warn("You must specify a session_secret_key in your init file, and it must be at least 16 characters\nbailing out...")
       exit!
     end
     Merb::Controller._session_secret_key = Merb::Config[:session_secret_key]
@@ -618,6 +626,14 @@ class Merb::BootLoader::ChooseAdapter < Merb::BootLoader
   # Choose the Rack adapter/server to use and set Merb.adapter.
   def self.run
     Merb.adapter = Merb::Rack::Adapter.get(Merb::Config[:adapter])
+  end
+end
+
+class Merb::BootLoader::StartWorkerThread < Merb::BootLoader
+
+  # Choose the Rack adapter/server to use and set Merb.adapter.
+  def self.run
+    Merb::Worker.new
   end
 end
 

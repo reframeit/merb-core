@@ -16,6 +16,10 @@ describe Merb::Controller, " displaying objects based on mime type" do
     dispatch_to(Merb::Test::Fixtures::Controllers::DisplayWithStringLocation, :index, {}, :http_accept => "application/json").headers['Location'].should =~ /some_resources/
   end
 
+  it "should set the status to a code provided by :status" do
+    dispatch_to(Merb::Test::Fixtures::Controllers::DisplayWithStatus, :index, {}, :http_accept => "application/json").status.should == 500
+  end
+
   it "should use a template if specified" do
     dispatch_to(Merb::Test::Fixtures::Controllers::DisplayWithTemplate, :index).body.should match(/Custom: Template/)
   end
@@ -30,6 +34,14 @@ describe Merb::Controller, " displaying objects based on mime type" do
   
   it "should accept an absolute template path argument - without the mimetype extension" do
     dispatch_to(Merb::Test::Fixtures::Controllers::DisplayWithTemplate, :absolute_without_mime).body.should == "Custom: HTML: Default"
+  end
+  
+  it "should accept a relative template path argument - with the mimetype extension" do
+    dispatch_to(Merb::Test::Fixtures::Controllers::DisplayWithTemplate, :relative_with_mime).body.should == "Custom: HTML: Default"
+  end
+  
+  it "should accept a relative template path argument - without the mimetype extension" do
+    dispatch_to(Merb::Test::Fixtures::Controllers::DisplayWithTemplate, :relative_without_mime).body.should == "Custom: HTML: Default"
   end
 
   it "should accept a layout argument when calling to_*" do

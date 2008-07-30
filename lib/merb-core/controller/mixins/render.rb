@@ -105,7 +105,7 @@ module Merb::RenderMixin
 
       template_method, template_location = 
         _template_for(thing, content_type, controller_name, opts[:template])
-      
+
       # Raise an error if there's no template
       unless template_method && self.respond_to?(template_method)
         template_files = Merb::Template.template_extensions.map { |ext| "#{template_location}.#{ext}" }
@@ -178,6 +178,8 @@ module Merb::RenderMixin
   #
   # :template                a template to use for rendering
   # :layout                  a layout to use for rendering
+  # :status                  the status code to return (defaults to 200)
+  # :location                the value of the Location header
   #
   # all other options        options that will be pass to serialization method
   #                          like #to_json or #to_xml
@@ -216,8 +218,11 @@ module Merb::RenderMixin
     end
 
     layout_opt = opts.delete(:layout)
+    _handle_options!(opts)
     throw_content(:for_layout, opts.empty? ? object.send(transform) : object.send(transform, opts))
-    layout_opt ? send(_get_layout(layout_opt)) : catch_content(:for_layout)
+    
+    meth, _ = _template_for(layout_opt, layout_opt.to_s.index(".") ? nil : content_type, "layout") if layout_opt
+    meth ? send(meth) : catch_content(:for_layout)
   end
 
   # Render a partial template.
@@ -239,11 +244,41 @@ module Merb::RenderMixin
   #   A Hash object names and values that will be the local names and values
   #   inside the partial.
   #
-  # ==== Example
+  # ==== Examples
   #   partial :foo, :hello => @object
   #
   # The "_foo" partial will be called, relative to the current controller,
   # with a local variable of +hello+ inside of it, assigned to @object.
+  #
+  #   partial :bar, :with => ['one', 'two', 'three']
+  #
+  # The "_bar" partial will be called once for each element of the array
+  # specified by :with for a total of three iterations. Each element
+  # of the array will be available in the partial via a local variable named
+  # +bar+. Additionally, there will be two extra local variables:
+  # +collection_index+ and +collection_size+. +collection_index+ is the index
+  # of the object currently referenced by +bar+ in the collection passed to
+  # the partial. +collection_size+ is the total size of the collection.
+  #
+  # By default, the object specified by :with will be available through a
+  # local variable with the same name as the partial template. However,
+  # this can be changed using the :as option.
+  #
+  #   partial :bar, :with => "one", :as => :number
+  #
+  # In this case, "one" will be available in the partial through the local
+  # variable named +number+.
+  #
+  # ==== Notes
+  # It is important to note that the object being passed to the partial
+  # as well as any extra local variables cannot use names of helper methods
+  # since any helper method of the same name will take precedence over the
+  # passed variable. Example:
+  #
+  #   partial :bar, :with => "one", :as => :partial
+  #
+  # In this case, "one" will not be available in the partial because "partial"
+  # is already a helper method.
   def partial(template, opts={})
 
     # partial :foo becomes "#{controller_name}/_foo"
@@ -264,7 +299,7 @@ module Merb::RenderMixin
     with = [opts.delete(:with)].flatten
     as = opts.delete(:as) || template_location.match(%r[.*/_([^\.]*)])[1]
     
-    @_merb_partial_locals = opts
+    @_merb_partial_locals = opts.merge(:collection_index => -1, :collection_size => with.size)
     
     # this handles an edge-case where the name of the partial is _foo.* and your opts
     # have :foo as a key.
@@ -273,6 +308,7 @@ module Merb::RenderMixin
     sent_template = with.map do |temp|
       @_merb_partial_locals[as.to_sym] = temp unless named_local
       if template_method && self.respond_to?(template_method)
+        @_merb_partial_locals[:collection_index] += 1
         send(template_method)
       else
         raise TemplateNotFound, "Could not find template at #{template_location}.*"
@@ -295,7 +331,7 @@ module Merb::RenderMixin
   # ==== Returns
   # Hash:: The options hash that was passed in.
   def _handle_options!(opts)
-    self.status = opts[:status].to_i if opts[:status]
+    self.status = opts.delete(:status).to_i if opts[:status]
     headers["Location"] = opts.delete(:location) if opts[:location]
     opts
   end
@@ -366,13 +402,8 @@ module Merb::RenderMixin
 
     self.class._template_roots.reverse_each do |root, template_meth|
       # :template => "foo/bar.html" where root / "foo/bar.html.*" exists
-      if template && template.is_a?(String) && template.index("/")
-        template_location = root / template
-        
-      # :template => :tmpl where root / "tmpl.html.*" exists
-      elsif template
+      if template
         template_location = root / self.send(template_meth, template, content_type, nil)
-        
       # :layout => "foo" where root / "layouts" / "#{controller}.html.*" exists        
       else
         template_location = root / self.send(template_meth, context, content_type, controller)
@@ -407,7 +438,7 @@ module Merb::RenderMixin
   #---
   # @public
   def catch_content(obj = :for_layout)
-    @_caught_content[obj]
+    @_caught_content[obj] * '' unless @_caught_content[obj].nil?
   end
 
   # Called in templates to test for the existence of previously thrown content.
@@ -442,7 +473,8 @@ module Merb::RenderMixin
     unless string || block_given?
       raise ArgumentError, "You must pass a block or a string into throw_content"
     end
-    @_caught_content[obj] = string.to_s << (block_given? ? capture(&block) : "")
+    @_caught_content[obj] = [] if @_caught_content[obj].nil?
+    @_caught_content[obj] << string.to_s << (block_given? ? capture(&block) : "")
   end
 
 end

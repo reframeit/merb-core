@@ -1,5 +1,5 @@
 require 'rack'
-module Merb  
+module Merb
   module Rack
     autoload :Application,         "merb-core/rack/application"
     autoload :Adapter,             "merb-core/rack/adapter"
@@ -12,8 +12,10 @@ module Merb
     autoload :Runner,              "merb-core/rack/adapter/runner"    
     autoload :SwiftipliedMongrel,  "merb-core/rack/adapter/swiftiplied_mongrel"
     autoload :Thin,                "merb-core/rack/adapter/thin"
+    autoload :ThinTurbo,           "merb-core/rack/adapter/thin_turbo"
     autoload :WEBrick,             "merb-core/rack/adapter/webrick"
-    autoload :PathPrefix,          "merb-core/rack/apps/path_prefix"
-    autoload :Static,              "merb-core/rack/apps/static"
+    autoload :PathPrefix,          "merb-core/rack/middleware/path_prefix"
+    autoload :Static,              "merb-core/rack/middleware/static"
+    autoload :Profiler,            "merb-core/rack/middleware/profiler"    
   end # Rack
 end # Merb

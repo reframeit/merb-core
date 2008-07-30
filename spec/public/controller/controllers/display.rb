@@ -63,6 +63,15 @@ module Merb::Test::Fixtures::Controllers
     def absolute_with_mime
       render :template => File.expand_path(self._template_root) / "merb/test/fixtures/controllers/html_default/index.html"
     end
+    
+    def relative_without_mime
+      render :template => "merb/test/fixtures/controllers/html_default/index"
+    end
+    
+    def relative_with_mime
+      render :template => "merb/test/fixtures/controllers/html_default/index.html"
+    end
+    
   end
   
   class DisplayWithTemplateArgument < Display
@@ -85,6 +94,13 @@ module Merb::Test::Fixtures::Controllers
     end
   end
 
+  class DisplayWithStatus < Display
+    provides :json
+    def index
+      @obj = SomeModel.new
+      display @obj, :status => 500
+    end
+  end
 
   class DisplayWithSerializationOptions < Display
     provides :json
