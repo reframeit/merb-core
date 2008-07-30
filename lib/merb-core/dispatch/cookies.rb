@@ -64,6 +64,9 @@ module Merb
     def delete(name, options = {})
       cookie = @_cookies.delete(name)
       options = Mash.new(options)
+      if domain = options[:domain] || Merb::Controller._session_cookie_domain
+        options[:domain] = domain
+      end
       options[:expires] = Time.at(0)
       set_cookie(name, "", options)
       Merb.logger.info("Cookie deleted: #{name} => #{cookie.inspect}")
@@ -80,6 +83,9 @@ module Merb
     # :expires<Time>:: Cookie expiry date.
     def set_cookie(name, value, options)
       options[:path] = '/' unless options[:path]
+      if domain = options[:domain] || Merb::Controller._session_cookie_domain
+        options[:domain] = domain
+      end
       if expiry = options[:expires]
         options[:expires] = expiry.gmtime.strftime(Merb::Const::COOKIE_EXPIRATION_FORMAT)
       end
