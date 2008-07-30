@@ -758,6 +758,12 @@ module Merb
         @conditions.each_pair do |match_key, source|
           while match = SEGMENT_REGEXP.match(source)
             source.sub! SEGMENT_REGEXP, PARENTHETICAL_SEGMENT_STRING
+            # allow wildcard routing
+            if source.gsub!(/\*/, '')
+              source.sub! SEGMENT_REGEXP, PARENTHETICAL_WILDCARD_SEGEMENT_STRING
+            else
+              source.sub! SEGMENT_REGEXP, PARENTHETICAL_SEGMENT_STRING
+            end
             unless match[2] == ':' # No need to store anonymous place holders
               placeholder_key = match[2].intern
               @params[placeholder_key] = "#{match[1]}"

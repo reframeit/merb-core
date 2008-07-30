@@ -24,6 +24,7 @@ module Merb
     SEGMENT_REGEXP_WITH_BRACKETS = /(:[a-z_]+)(\[(\d+)\])?/
     JUST_BRACKETS = /\[(\d+)\]/
     PARENTHETICAL_SEGMENT_STRING = "([^\/.,;?]+)".freeze
+    PARENTHETICAL_WILDCARD_SEGEMENT_STRING = "([^,;?]+)".freeze
 
     @@named_routes = {}
     @@routes = []
